@@ -1,6 +1,7 @@
 # Kuberya Attendance — Backend
 
-FastAPI + SQLAlchemy + SQLite backend for the Kuberya AI Solutions attendance portal. Mirrors the
+FastAPI + SQLAlchemy backend for the Kuberya AI Solutions attendance portal. Mirrors the
+data model used by the `frontend/` mock (configured for PostgreSQL by default).
 data model already used by the `frontend/` mock (Redux) layer, so wiring the frontend to this API
 later is a 1:1 swap.
 
@@ -12,7 +13,7 @@ later is a 1:1 swap.
 | Package manager | [uv](https://docs.astral.sh/uv/) |
 | ORM | SQLAlchemy 2.0 (sync) |
 | Migrations | Alembic |
-| Database | SQLite (swap `DATABASE_URL` for Postgres later — see note in `crud/attendance.py`) |
+| Database | PostgreSQL (set `DATABASE_URL` for your Postgres instance) |
 | Auth | JWT (PyJWT) + bcrypt password hashing |
 | Validation | Pydantic v2 |
 | Lint | ruff |
@@ -58,7 +59,7 @@ backend/
 ├── tests/
 ├── pyproject.toml
 ├── .env.example
-└── kuberya_attendance.db        # SQLite file (gitignored, created on first migrate)
+└── (database is PostgreSQL; migrations create tables via Alembic)
 ```
 
 **The pattern to follow for every new feature:** model → schema → crud function → route →

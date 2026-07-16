@@ -3,7 +3,9 @@
 # In values ko ".env" file me likh ke change kar sakte ho, bina code touch kiye.
 
 from functools import lru_cache
+import os
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,8 +16,13 @@ class Settings(BaseSettings):
     app_name: str = "Kuberya Attendance API"
     environment: str = "development"
 
-    # SQLite database file ka path (ek simple file-based database)
-    database_url: str = "sqlite:///./kuberya_attendance.db"
+    # Read DATABASE_URL from the environment (or .env file). If not set, fall
+    # back to a sensible local Postgres example so development works out of the box.
+    # The env var name used is `DATABASE_URL`.
+    database_url: str = Field(
+        default="postgresql://himanshupatel@localhost:5432/kuberya_attendance",
+        env="DATABASE_URL",
+    )
 
     # login token (JWT) banane ke liye secret key + settings
     jwt_secret_key: str = "change-me-in-production"
