@@ -10,7 +10,9 @@ services:
       - key: CORS_ORIGINS
         value: '["https://your-frontend-domain","http://localhost:3000"]'
       - key: DATABASE_URL
-        fromDatabase: kuberya-attendance-db
+        fromDatabase:
+          name: kuberya-attendance-db
+          property: connectionString
 
 databases:
   - name: kuberya-attendance-db
