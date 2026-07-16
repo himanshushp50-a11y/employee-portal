@@ -17,4 +17,3 @@ services:
 databases:
   - name: kuberya-attendance-db
     plan: starter
-    postgresVersion: 15
