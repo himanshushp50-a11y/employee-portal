@@ -5,8 +5,8 @@ services:
     path: backend
     plan: starter
     region: oregon
-    buildCommand: uv sync
-    startCommand: uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: cd backend && uv sync
+    startCommand: cd backend && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: CORS_ORIGINS
         value: '["https://your-frontend-domain","http://localhost:3000"]'
