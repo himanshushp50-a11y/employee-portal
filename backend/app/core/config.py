@@ -30,7 +30,14 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24  # token 24 ghante tak valid rahega
 
     # sirf ye website (frontend) is backend ko call kar sakti hai
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://employee-portal-taupe.vercel.app",
+    ]
+    # Vercel ke preview/production URLs (employee-portal-*.vercel.app) ko bhi allow karo,
+    # taaki har naye deploy par CORS list update na karni pade.
+    cors_origin_regex: str = r"https://employee-portal.*\.vercel\.app"
 
     # demo/test ke liye pehle se bana hua admin aur employee account
     seed_admin_email: str = "admin@kuberya.ai"
