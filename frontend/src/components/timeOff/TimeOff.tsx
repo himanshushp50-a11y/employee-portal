@@ -1,7 +1,7 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { addRequest } from '@/redux/leaveSlice';
+import { createLeaveThunk, fetchMyLeave } from '@/redux/leaveSlice';
 import { useCurrentEmployee } from '@/hooks/useCurrentEmployee';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,10 @@ export default function TimeOff() {
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [reason, setReason] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    dispatch(fetchMyLeave());
+  }, [dispatch]);
 
   const myRequests = useMemo(
     () => (employee ? requests.filter((r) => r.employeeId === employee.id) : []),
@@ -48,7 +52,7 @@ export default function TimeOff() {
 
   const isReasonEmpty = reason.trim().length === 0;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (selectedDates.length === 0) {
       setFormError('Please select one or more dates from the calendar first.');
@@ -63,14 +67,13 @@ export default function TimeOff() {
       setFormError(`You've already requested leave for ${formatShortDate(duplicateDate)}.`);
       return;
     }
-    dispatch(
-      addRequest({
-        employeeId: employee.id,
-        dates: selectedDates,
-        reason: reason.trim(),
-        createdAt: new Date().toISOString(),
-      })
+    const result = await dispatch(
+      createLeaveThunk({ dates: selectedDates, reason: reason.trim() })
     );
+    if (createLeaveThunk.rejected.match(result)) {
+      setFormError(result.payload ?? 'Could not send request.');
+      return;
+    }
     showToast.success('Time off request sent!');
     setFormError(null);
     setSelectedDates([]);

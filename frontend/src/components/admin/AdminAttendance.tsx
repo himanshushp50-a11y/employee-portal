@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, XCircle, CalendarClock, Users } from 'lucide-react';
-import { useAppSelector } from '@/redux/hooks';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { fetchEmployees } from '@/redux/authSlice';
+import { fetchAttendanceForDate } from '@/redux/attendanceSlice';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -18,11 +20,21 @@ const STATUS_META: Record<DisplayStatus, { label: string; variant: 'success' | '
 };
 
 export default function AdminAttendance() {
+  const dispatch = useAppDispatch();
   const employees = useAppSelector((state) => state.auth.employees).filter((e) => !e.isAdmin);
   const records = useAppSelector((state) => state.attendance.records);
   const [date, setDate] = useState(() => toDateKey(new Date()));
 
   const todayKey = toDateKey(new Date());
+
+  // Employee list ek baar; us date ki attendance jab bhi date badle.
+  useEffect(() => {
+    dispatch(fetchEmployees());
+  }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(fetchAttendanceForDate(date));
+  }, [dispatch, date]);
 
   const rows = useMemo(() => {
     return employees.map((employee) => {

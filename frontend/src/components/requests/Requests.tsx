@@ -1,13 +1,19 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppSelector } from '@/redux/hooks';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { fetchMyLeave } from '@/redux/leaveSlice';
 import { useCurrentEmployee } from '@/hooks/useCurrentEmployee';
 import { LeaveRequestList } from '@/components/timeOff/LeaveRequestList';
 import { Button } from '@/components/ui/button';
 
 export default function Requests() {
+  const dispatch = useAppDispatch();
   const employee = useCurrentEmployee();
   const requests = useAppSelector((state) => state.leave.requests);
+
+  useEffect(() => {
+    dispatch(fetchMyLeave());
+  }, [dispatch]);
 
   const myRequests = useMemo(
     () => (employee ? requests.filter((r) => r.employeeId === employee.id) : []),

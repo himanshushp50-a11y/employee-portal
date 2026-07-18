@@ -1,25 +1,29 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import Router from '@/components/Router';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { ensureSeedAccounts } from '@/redux/authSlice';
-import { seedDemoRecords } from '@/redux/attendanceSlice';
-import { generateDemoAttendance } from '@/utils/seedData';
+import { useAppDispatch } from '@/redux/hooks';
+import { restoreSession } from '@/redux/authSlice';
+import { getToken } from '@/api/client';
 
 export default function App() {
   const dispatch = useAppDispatch();
-  const { currentUserId } = useAppSelector((state) => state.auth);
-  const seeded = useAppSelector((state) => state.attendance.seeded);
+  // Agar token pehle se hai to session restore hone tak wait karo, warna refresh par
+  // logged-in user ek pal ke liye login screen dekhega. Token na ho to seedha ready.
+  const [ready, setReady] = useState(() => !getToken());
 
   useEffect(() => {
-    dispatch(ensureSeedAccounts());
+    if (getToken()) {
+      dispatch(restoreSession()).finally(() => setReady(true));
+    }
   }, [dispatch]);
 
-  useEffect(() => {
-    if (currentUserId === 'emp-1' && !seeded) {
-      dispatch(seedDemoRecords(generateDemoAttendance('emp-1', new Date())));
-    }
-  }, [currentUserId, seeded, dispatch]);
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <>

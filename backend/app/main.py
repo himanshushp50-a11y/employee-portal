@@ -1,6 +1,8 @@
 # Ye "main gate" hai — server start hote hi sabse pehle ye file chalti hai.
 # Run karne ka command: uv run uvicorn app.main:app --reload
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,8 +17,20 @@ import app.models  # noqa: F401
 # Agar tables pehle se nahi bane, to yahan ban jaate hain (already bane ho to kuch nahi hota)
 Base.metadata.create_all(bind=engine)
 
+
+# Server start hote hi demo accounts + festivals daal dete hain (agar pehle se nahi hain).
+# seed() idempotent hai — baar baar chale to duplicate nahi banata. Isse fresh database
+# (jaise Render ka naya Postgres) par bhi login karne ke liye admin/employee ready milte hain.
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    from app.seed import seed
+
+    seed()
+    yield
+
+
 # Ye humara FastAPI app hai — poora backend isi ke andar chalega
-app = FastAPI(title=settings.app_name)
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 # CORS: browser normally ek website ko doosri website (yaha alag port) se
 # baat karne se rokta hai. Ye setting frontend (localhost:3000) ko allow karti hai.

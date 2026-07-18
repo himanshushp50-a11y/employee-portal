@@ -1,6 +1,6 @@
 import { CalendarX2, Clock3 } from 'lucide-react';
 import { useAppDispatch } from '@/redux/hooks';
-import { cancelRequest } from '@/redux/leaveSlice';
+import { cancelLeaveThunk } from '@/redux/leaveSlice';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -55,7 +55,7 @@ export function LeaveRequestList({ requests }: { requests: LeaveRequest[] }) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => dispatch(cancelRequest({ id: request.id }))}
+                    onClick={() => dispatch(cancelLeaveThunk(request.id))}
                   >
                     Cancel
                   </Button>

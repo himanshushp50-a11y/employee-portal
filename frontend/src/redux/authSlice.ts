@@ -1,134 +1,165 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { Employee } from '@/types';
+import * as apiModule from '@/api';
+import { setToken, clearToken, getToken, extractErrorMessage } from '@/api/client';
 
 interface AuthState {
-  employees: Employee[];
-  currentUserId: string | null;
+  token: string | null;
+  currentUser: Employee | null; // abhi logged-in user (employee ya admin)
+  employees: Employee[]; // admin ke liye — saare non-admin employees ki list
   isAuthenticated: boolean;
+  status: 'idle' | 'loading';
   error: string | null;
 }
 
-const AVATAR_COLORS = ['#7C3AED', '#2563EB', '#059669', '#DB2777', '#D97706', '#0891B2'];
-
-// Seed accounts — also re-applied on app load (see ensureSeedAccounts) so that
-// browsers with an older persisted auth state still pick up new seed accounts.
-export const SEED_EMPLOYEES: Employee[] = [
-  {
-    id: 'emp-1',
-    name: 'Aniruddha Sharma',
-    email: 'aniruddha@kuberya.ai',
-    password: 'demo1234',
-    role: 'Software Engineer',
-    avatarColor: AVATAR_COLORS[0],
-    isAdmin: false,
-  },
-  {
-    id: 'admin-1',
-    name: 'Kuberya Admin',
-    email: 'admin@kuberya.ai',
-    password: 'admin1234',
-    role: 'Administrator',
-    avatarColor: '#0F172A',
-    isAdmin: true,
-  },
-];
-
 const initialState: AuthState = {
-  employees: SEED_EMPLOYEES,
-  currentUserId: null,
+  token: getToken(),
+  currentUser: null,
+  employees: [],
   isAuthenticated: false,
+  status: 'idle',
   error: null,
 };
+
+type LoginArgs = { email: string; password: string; expectedRole: 'employee' | 'admin' };
+
+// Login: backend ko email+password bhejo, token + employee wapas lo.
+// "Login as Employee/Admin" toggle ke hisaab se role match bhi check karte hain.
+export const loginThunk = createAsyncThunk<
+  { token: string; employee: Employee },
+  LoginArgs,
+  { rejectValue: string }
+>('auth/login', async ({ email, password, expectedRole }, { rejectWithValue }) => {
+  try {
+    const { token, employee } = await apiModule.login(email, password);
+    const actualRole = employee.isAdmin ? 'admin' : 'employee';
+    if (actualRole !== expectedRole) {
+      return rejectWithValue(
+        actualRole === 'admin'
+          ? 'This is an admin account. Switch to "Login as Admin" to continue.'
+          : 'This is an employee account. Switch to "Login as Employee" to continue.'
+      );
+    }
+    setToken(token);
+    return { token, employee };
+  } catch (err) {
+    return rejectWithValue(extractErrorMessage(err, 'Incorrect email or password.'));
+  }
+});
+
+export const signupThunk = createAsyncThunk<
+  { token: string; employee: Employee },
+  { name: string; email: string; password: string; role: string },
+  { rejectValue: string }
+>('auth/signup', async ({ name, email, password, role }, { rejectWithValue }) => {
+  try {
+    const { token, employee } = await apiModule.signup(name, email, password, role || 'Employee');
+    setToken(token);
+    return { token, employee };
+  } catch (err) {
+    return rejectWithValue(extractErrorMessage(err, 'Could not create account.'));
+  }
+});
+
+// App load hone par: agar token pehle se hai to "/me" call karke user wapas laao.
+// Token invalid/expire ho gaya to chup-chaap logout kar do.
+export const restoreSession = createAsyncThunk<Employee | null, void, { rejectValue: string }>(
+  'auth/restore',
+  async (_, { rejectWithValue }) => {
+    if (!getToken()) return null;
+    try {
+      return await apiModule.getMe();
+    } catch {
+      clearToken();
+      return rejectWithValue('session-expired');
+    }
+  }
+);
+
+// Admin: saare employees ki list laao
+export const fetchEmployees = createAsyncThunk('auth/fetchEmployees', async () => {
+  return apiModule.listEmployees();
+});
+
+// Apna profile (naam/designation) update karo
+export const updateProfileThunk = createAsyncThunk<
+  Employee,
+  { name: string; role: string },
+  { rejectValue: string }
+>('auth/updateProfile', async ({ name, role }, { rejectWithValue }) => {
+  try {
+    return await apiModule.updateMyProfile(name, role);
+  } catch (err) {
+    return rejectWithValue(extractErrorMessage(err, 'Could not update profile.'));
+  }
+});
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    login: (
-      state,
-      action: PayloadAction<{
-        email: string;
-        password: string;
-        expectedRole: 'employee' | 'admin';
-      }>
-    ) => {
-      const { email, password, expectedRole } = action.payload;
-      const employee = state.employees.find(
-        (e) => e.email.toLowerCase() === email.trim().toLowerCase()
-      );
-      if (!employee) {
-        state.error = 'No account found with this email.';
-        return;
-      }
-      if (employee.password !== password) {
-        state.error = 'Incorrect password.';
-        return;
-      }
-      const actualRole = employee.isAdmin ? 'admin' : 'employee';
-      if (actualRole !== expectedRole) {
-        state.error =
-          actualRole === 'admin'
-            ? 'This is an admin account. Switch to "Login as Admin" to continue.'
-            : 'This is an employee account. Switch to "Login as Employee" to continue.';
-        return;
-      }
-      state.currentUserId = employee.id;
-      state.isAuthenticated = true;
-      state.error = null;
-    },
-    signup: (
-      state,
-      action: PayloadAction<{ name: string; email: string; password: string; role: string }>
-    ) => {
-      const { name, email, password, role } = action.payload;
-      const exists = state.employees.some(
-        (e) => e.email.toLowerCase() === email.trim().toLowerCase()
-      );
-      if (exists) {
-        state.error = 'An account with this email already exists.';
-        return;
-      }
-      const newEmployee: Employee = {
-        id: `emp-${Date.now()}`,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-        role: role.trim() || 'Employee',
-        avatarColor: AVATAR_COLORS[state.employees.length % AVATAR_COLORS.length],
-        isAdmin: false,
-      };
-      state.employees.push(newEmployee);
-      state.currentUserId = newEmployee.id;
-      state.isAuthenticated = true;
-      state.error = null;
-    },
     logoutUser: (state) => {
-      state.currentUserId = null;
+      clearToken();
+      state.token = null;
+      state.currentUser = null;
+      state.employees = [];
       state.isAuthenticated = false;
+      state.error = null;
     },
     clearAuthError: (state) => {
       state.error = null;
     },
-    updateProfile: (
-      state,
-      action: PayloadAction<{ id: string; name: string; role: string }>
+  },
+  extraReducers: (builder) => {
+    const onAuthSuccess = (
+      state: AuthState,
+      action: PayloadAction<{ token: string; employee: Employee }>
     ) => {
-      const employee = state.employees.find((e) => e.id === action.payload.id);
-      if (employee) {
-        employee.name = action.payload.name;
-        employee.role = action.payload.role;
-      }
-    },
-    ensureSeedAccounts: (state) => {
-      SEED_EMPLOYEES.forEach((seed) => {
-        if (!state.employees.some((e) => e.id === seed.id)) {
-          state.employees.push(seed);
+      state.token = action.payload.token;
+      state.currentUser = action.payload.employee;
+      state.isAuthenticated = true;
+      state.status = 'idle';
+      state.error = null;
+    };
+
+    builder
+      .addCase(loginThunk.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(loginThunk.fulfilled, onAuthSuccess)
+      .addCase(loginThunk.rejected, (state, action) => {
+        state.status = 'idle';
+        state.error = action.payload ?? 'Login failed.';
+      })
+      .addCase(signupThunk.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(signupThunk.fulfilled, onAuthSuccess)
+      .addCase(signupThunk.rejected, (state, action) => {
+        state.status = 'idle';
+        state.error = action.payload ?? 'Signup failed.';
+      })
+      .addCase(restoreSession.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.currentUser = action.payload;
+          state.isAuthenticated = true;
         }
+      })
+      .addCase(restoreSession.rejected, (state) => {
+        state.token = null;
+        state.currentUser = null;
+        state.isAuthenticated = false;
+      })
+      .addCase(fetchEmployees.fulfilled, (state, action) => {
+        state.employees = action.payload;
+      })
+      .addCase(updateProfileThunk.fulfilled, (state, action) => {
+        state.currentUser = action.payload;
       });
-    },
   },
 });
 
-export const { login, signup, logoutUser, clearAuthError, updateProfile, ensureSeedAccounts } =
-  authSlice.actions;
+export const { logoutUser, clearAuthError } = authSlice.actions;
 export default authSlice.reducer;

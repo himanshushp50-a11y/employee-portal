@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { login, signup, clearAuthError } from '@/redux/authSlice';
+import { loginThunk, signupThunk, clearAuthError } from '@/redux/authSlice';
 import { useCurrentEmployee } from '@/hooks/useCurrentEmployee';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ type LoginRole = 'employee' | 'admin';
 
 export default function Login() {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, error } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, error, status } = useAppSelector((state) => state.auth);
   const employee = useCurrentEmployee();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [loginRole, setLoginRole] = useState<LoginRole>('employee');
@@ -40,9 +40,9 @@ export default function Login() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (mode === 'login') {
-      dispatch(login({ email, password, expectedRole: loginRole }));
+      dispatch(loginThunk({ email, password, expectedRole: loginRole }));
     } else {
-      dispatch(signup({ name, email, password, role }));
+      dispatch(signupThunk({ name, email, password, role }));
     }
   };
 
@@ -133,8 +133,12 @@ export default function Login() {
             <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
           )}
 
-          <Button type="submit" size="lg" className="mt-2 w-full">
-            {mode === 'login' ? 'Login' : 'Create Account'}
+          <Button type="submit" size="lg" className="mt-2 w-full" disabled={status === 'loading'}>
+            {status === 'loading'
+              ? 'Please wait…'
+              : mode === 'login'
+                ? 'Login'
+                : 'Create Account'}
           </Button>
         </form>
 

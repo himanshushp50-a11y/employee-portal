@@ -1,6 +1,6 @@
 import { useAppSelector } from '@/redux/hooks';
 
+// Abhi logged-in user (backend "/me" / login se aaya hua). Employee ya admin dono ke liye.
 export function useCurrentEmployee() {
-  const { employees, currentUserId } = useAppSelector((state) => state.auth);
-  return employees.find((e) => e.id === currentUserId) ?? null;
+  return useAppSelector((state) => state.auth.currentUser);
 }

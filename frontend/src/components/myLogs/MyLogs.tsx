@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CalendarClock, CheckCircle2, XCircle } from 'lucide-react';
-import { useAppSelector } from '@/redux/hooks';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { fetchMyAttendance } from '@/redux/attendanceSlice';
 import { useCurrentEmployee } from '@/hooks/useCurrentEmployee';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,9 +15,14 @@ const STATUS_META: Record<AttendanceStatus, { label: string; variant: 'success' 
 };
 
 export default function MyLogs() {
+  const dispatch = useAppDispatch();
   const employee = useCurrentEmployee();
   const records = useAppSelector((state) => state.attendance.records);
   const [month, setMonth] = useState(() => toDateKey(new Date()).slice(0, 7));
+
+  useEffect(() => {
+    dispatch(fetchMyAttendance());
+  }, [dispatch]);
 
   const filtered = useMemo(() => {
     if (!employee) return [];

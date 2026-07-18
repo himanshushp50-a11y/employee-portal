@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Check, Inbox, X } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { approveRequest, rejectRequest } from '@/redux/leaveSlice';
-import { markOnLeave } from '@/redux/attendanceSlice';
+import { approveLeaveThunk, rejectLeaveThunk, fetchAllLeave } from '@/redux/leaveSlice';
+import { fetchEmployees } from '@/redux/authSlice';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,12 @@ export default function AdminRequests() {
   const requests = useAppSelector((state) => state.leave.requests);
   const employees = useAppSelector((state) => state.auth.employees);
 
+  // Saari requests + employee list (naam/avatar dikhane ke liye) backend se laao.
+  useEffect(() => {
+    dispatch(fetchAllLeave());
+    dispatch(fetchEmployees());
+  }, [dispatch]);
+
   const sorted = useMemo(() => {
     return [...requests].sort((a, b) => {
       if (a.status === 'pending' && b.status !== 'pending') return -1;
@@ -30,15 +36,23 @@ export default function AdminRequests() {
     });
   }, [requests]);
 
-  const handleApprove = (id: string, employeeId: string, dates: string[]) => {
-    dispatch(approveRequest({ id }));
-    dispatch(markOnLeave({ employeeId, dates }));
-    showToast.success('Request approved.');
+  // Approve karte hi backend un dates ki attendance bhi "on-leave" mark kar deta hai.
+  const handleApprove = async (id: string) => {
+    const result = await dispatch(approveLeaveThunk(id));
+    if (approveLeaveThunk.rejected.match(result)) {
+      showToast.error('Could not approve request.');
+    } else {
+      showToast.success('Request approved.');
+    }
   };
 
-  const handleReject = (id: string) => {
-    dispatch(rejectRequest({ id }));
-    showToast.info('Request rejected.');
+  const handleReject = async (id: string) => {
+    const result = await dispatch(rejectLeaveThunk(id));
+    if (rejectLeaveThunk.rejected.match(result)) {
+      showToast.error('Could not reject request.');
+    } else {
+      showToast.info('Request rejected.');
+    }
   };
 
   return (
@@ -89,7 +103,7 @@ export default function AdminRequests() {
                         <Button
                           variant="success"
                           size="sm"
-                          onClick={() => handleApprove(request.id, request.employeeId, request.dates)}
+                          onClick={() => handleApprove(request.id)}
                         >
                           <Check className="h-4 w-4" />
                           Approve

@@ -2,7 +2,7 @@ export interface Employee {
   id: string;
   name: string;
   email: string;
-  password: string;
+  password?: string; // sirf local/demo ke liye; backend kabhi password wapas nahi bhejta
   role: string;
   avatarColor: string;
   isAdmin: boolean;

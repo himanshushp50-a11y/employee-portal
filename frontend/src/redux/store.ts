@@ -6,10 +6,13 @@ import authReducer from './authSlice';
 import attendanceReducer from './attendanceSlice';
 import leaveReducer from './leaveSlice';
 
+// Server ab source-of-truth hai, isliye attendance/leave/auth ko persist nahi karte
+// (wo har baar backend se fresh aate hain). Login token alag se localStorage me
+// rehta hai (see api/client.ts) aur app load par "/me" se session wapas aata hai.
 const persistConfig = {
   key: 'kuberya-attendance',
   storage,
-  whitelist: ['app', 'auth', 'attendance', 'leave'],
+  whitelist: [] as string[],
 };
 
 const rootReducer = combineReducers({

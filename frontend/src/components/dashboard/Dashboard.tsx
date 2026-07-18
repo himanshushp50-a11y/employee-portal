@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Sun, Moon, CheckCircle2, XCircle, CalendarClock } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { clockIn, clockOut } from '@/redux/attendanceSlice';
+import { clockInThunk, clockOutThunk, fetchMyAttendance } from '@/redux/attendanceSlice';
 import { useCurrentEmployee } from '@/hooks/useCurrentEmployee';
+import { showToast } from '@/utils/toast';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   toDateKey,
@@ -23,6 +24,11 @@ export default function Dashboard() {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Apni attendance history backend se laao (clock-in/out ka status aur month stats iske bina khaali honge)
+  useEffect(() => {
+    dispatch(fetchMyAttendance());
+  }, [dispatch]);
 
   const today = toDateKey(now);
 
@@ -57,12 +63,22 @@ export default function Dashboard() {
 
   if (!employee) return null;
 
-  const handleClockIn = () => {
-    dispatch(clockIn({ employeeId: employee.id, date: today, time: new Date().toISOString() }));
+  const handleClockIn = async () => {
+    const result = await dispatch(clockInThunk());
+    if (clockInThunk.rejected.match(result)) {
+      showToast.error(result.payload ?? 'Could not clock in.');
+    } else {
+      showToast.success('Clocked in. Have a great shift!');
+    }
   };
 
-  const handleClockOut = () => {
-    dispatch(clockOut({ employeeId: employee.id, date: today, time: new Date().toISOString() }));
+  const handleClockOut = async () => {
+    const result = await dispatch(clockOutThunk());
+    if (clockOutThunk.rejected.match(result)) {
+      showToast.error(result.payload ?? 'Could not clock out.');
+    } else {
+      showToast.success('Clocked out. See you tomorrow!');
+    }
   };
 
   let statusLine: string;

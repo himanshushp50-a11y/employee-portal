@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useAppDispatch } from '@/redux/hooks';
-import { updateProfile } from '@/redux/authSlice';
+import { updateProfileThunk } from '@/redux/authSlice';
 import { useCurrentEmployee } from '@/hooks/useCurrentEmployee';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -18,10 +18,16 @@ export default function Profile() {
 
   if (!employee) return null;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    dispatch(updateProfile({ id: employee.id, name: name.trim() || employee.name, role: role.trim() || employee.role }));
-    showToast.success('Profile updated.');
+    const result = await dispatch(
+      updateProfileThunk({ name: name.trim() || employee.name, role: role.trim() || employee.role })
+    );
+    if (updateProfileThunk.rejected.match(result)) {
+      showToast.error(result.payload ?? 'Could not update profile.');
+    } else {
+      showToast.success('Profile updated.');
+    }
   };
 
   return (
