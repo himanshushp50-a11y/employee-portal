@@ -22,3 +22,34 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables — NEVER commit real secrets.
+# (.env.example and frontend/.env.production are intentionally committed and
+#  only contain non-secret values like the public API URL.)
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+build/
+wheels/
+
+# Databases (local SQLite)
+*.db
+*.sqlite3
+
+# Deploy tooling
+.vercel
+.render/
+
+# Coverage / test artifacts
+.coverage
+htmlcov/

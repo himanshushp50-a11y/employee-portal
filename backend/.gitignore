@@ -6,11 +6,18 @@ dist/
 wheels/
 *.egg-info
 
+# Tool caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
 # Virtual environments
 .venv
 
 # Env vars
 .env
+.env.local
+.env.*.local
 
 # SQLite database
 *.db
