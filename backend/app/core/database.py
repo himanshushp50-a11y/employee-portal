@@ -11,11 +11,20 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
 
+# Render/Postgres URLs "postgresql://" ya "postgres://" se aate hain, jinme SQLAlchemy
+# by-default purana psycopg2 driver dhoondta hai. Hum psycopg3 (psycopg[binary]) use karte
+# hain, isliye URL ko "postgresql+psycopg://" me badal dete hain.
+database_url = settings.database_url
+if database_url.startswith("postgres://"):
+    database_url = "postgresql+psycopg://" + database_url[len("postgres://"):]
+elif database_url.startswith("postgresql://"):
+    database_url = "postgresql+psycopg://" + database_url[len("postgresql://"):]
+
 # SQLite ko ek special option chahiye hota hai (multi-thread me use karne ke liye)
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
 
 # engine = database se baat karne ka main pipe
-engine = create_engine(settings.database_url, connect_args=connect_args)
+engine = create_engine(database_url, connect_args=connect_args)
 
 # SessionLocal() call karke ek nayi "database conversation" (session) milti hai
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
