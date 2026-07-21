@@ -11,10 +11,21 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
 
+# DATABASE_URL me kabhi-kabhi galti se extra spaces ya quotes aa jaate hain
+# (jaise env var me '"postgres://..."' set kar diya). Unhe hata do.
+database_url = (settings.database_url or "").strip().strip('"').strip("'")
+
+# Agar URL khaali hai to SQLAlchemy ek confusing error deta hai — iske badle ek
+# saaf message do taaki turant pata chale ki DATABASE_URL set nahi hai.
+if not database_url:
+    raise RuntimeError(
+        "DATABASE_URL is empty. Set it to your Postgres connection string, e.g. "
+        "postgresql://user:pass@host:5432/dbname"
+    )
+
 # Render/Postgres URLs "postgresql://" ya "postgres://" se aate hain, jinme SQLAlchemy
 # by-default purana psycopg2 driver dhoondta hai. Hum psycopg3 (psycopg[binary]) use karte
 # hain, isliye URL ko "postgresql+psycopg://" me badal dete hain.
-database_url = settings.database_url
 if database_url.startswith("postgres://"):
     database_url = "postgresql+psycopg://" + database_url[len("postgres://"):]
 elif database_url.startswith("postgresql://"):
